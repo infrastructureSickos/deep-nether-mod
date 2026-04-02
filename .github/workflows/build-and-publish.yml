@@ -1,0 +1,76 @@
+name: Build and Publish
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Build mod
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build with Gradle
+        run: ./gradlew build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: deep-nether-mod-jars
+          path: build/libs/*.jar
+
+  publish:
+    name: Publish to Modrinth
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build with Gradle
+        run: ./gradlew build
+
+      - name: Publish to Modrinth
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          modrinth-token: ${{ secrets.MODRINTH_API_TOKEN }}
+          files: |
+            build/libs/!(*-sources).jar
+          name: Deep Nether ${{ github.ref_name }}
+          version: ${{ github.ref_name }}
+          version-type: release
+          game-versions: 1.20.1
+          loaders: forge
+          java: 17
+
+      - name: Trigger modpack update
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.MODPACK_DISPATCH_TOKEN }}
+          repository: brooswit/minecraft-modpack
+          event-type: deep-nether-updated
+          client-payload: '{"version": "${{ github.ref_name }}"}'
