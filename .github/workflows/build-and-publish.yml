@@ -71,6 +71,6 @@ jobs:
         uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.MODPACK_DISPATCH_TOKEN }}
-          repository: brooswit/minecraft-modpack
+          repository: infrastructureSickos/minecraft-modpack
           event-type: deep-nether-updated
           client-payload: '{"version": "${{ github.ref_name }}"}'
